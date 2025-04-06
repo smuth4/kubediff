@@ -3,7 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/gobwas/glob"
@@ -118,7 +118,7 @@ func New(filepath string) (*Config, error) {
 	}
 	defer config.Close()
 
-	b, err := ioutil.ReadAll(config)
+	b, err := io.ReadAll(config)
 	if err != nil {
 		return nil, err
 	}
