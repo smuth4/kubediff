@@ -1,4 +1,4 @@
-FROM golang:1.16 as builder
+FROM golang:1.24 AS builder
 
 WORKDIR /app
 
@@ -11,8 +11,6 @@ COPY pkg/ pkg/
 COPY config/ config/
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o kubediff main.go
-
-
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
