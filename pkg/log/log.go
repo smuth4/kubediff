@@ -17,7 +17,7 @@ func init() {
 	}
 	log.SetLevel(logLevel)
 	log.Formatter = &logrus.JSONFormatter{
-		PrettyPrint:     true,
+		PrettyPrint:     false,
 		TimestampFormat: "2006-01-02 15:04:05",
 	}
 }
