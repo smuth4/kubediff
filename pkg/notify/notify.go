@@ -30,9 +30,7 @@ func (n *NotifierList) Handle(e event.Event) error {
 
 func NewNotifierList(conf *config.Config) Notifier {
 	var notifiers []Notifier
-	if conf.Notifier.Slack.Enabled {
-		notifiers = append(notifiers, NewSlack(conf))
-	}
+
 	if conf.Notifier.Webhook.Enabled {
 		notifiers = append(notifiers, NewWebhook(conf))
 	}

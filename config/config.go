@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -20,13 +21,13 @@ type Config struct {
 	Resources  []Resource
 	Namespaces []string
 	Notifier   Notifier
+	IgnoreDiff []string `:yaml:"ignoreDiff"`
 }
 
 func (c *Config) init() {
 	if c.Mode == "" {
 		c.Mode = WatchMode
 	}
-
 	if len(c.Namespaces) == 0 {
 		c.Namespaces = append(c.Namespaces, "all")
 	}
@@ -43,22 +44,33 @@ func (c *Config) validate() error {
 	return nil
 }
 
+func (c *Config) IsIgnoredDiffPath(kind string, path string) bool {
+	for _, p := range c.IgnoreDiff {
+		if strings.HasPrefix(path, p) {
+			return true
+		}
+	}
+	for _, r := range c.Resources {
+		if r.Kind != kind {
+			continue
+		}
+		for _, p := range r.IgnoreDiff {
+			if strings.HasPrefix(path, p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 type Resource struct {
-	Kind string
+	Kind       string
+	IgnoreDiff []string `:yaml:"ignoreDiff"`
 }
 
 type Notifier struct {
-	Slack   Slack
 	Webhook Webhook
 	NoOp    NoOp
-}
-
-// Slack contains slack configuration
-type Slack struct {
-	Enabled bool
-	Token   string
-	Channel string
-	Title   string
 }
 
 type Webhook struct {

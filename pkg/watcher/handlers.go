@@ -1,12 +1,13 @@
 package watcher
 
 import (
+	"strings"
+
 	"github.com/arriqaaq/kubediff/config"
 	"github.com/arriqaaq/kubediff/pkg/event"
 	"github.com/arriqaaq/kubediff/pkg/log"
 	"github.com/arriqaaq/kubediff/pkg/notify"
-	"github.com/go-test/deep"
-	"k8s.io/apimachinery/pkg/api/equality"
+	"github.com/r3labs/diff/v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 )
@@ -37,20 +38,58 @@ func watchHandler(resourceType string, notifier notify.Notifier) cache.ResourceE
 	return handler
 }
 
-func diffHandler(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
+func diffHandlerFactory(cfg *config.Config) func(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
+	return func(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
+		var handler cache.ResourceEventHandlerFuncs
+		handler.AddFunc = func(obj interface{}) {
+			objStruct := obj.(*unstructured.Unstructured)
+			addLog := log.WithField("name", objStruct.GetName()).WithField("namespace", objStruct.GetNamespace())
+			addLog.WithField("resourceType", resourceType).Info("add event")
+			notifier.Handle(event.NewEvent(EventAdd, resourceType, obj, nil))
+		}
+		handler.UpdateFunc = func(old, new interface{}) {
+			oldObj := old.(*unstructured.Unstructured)
+			newObj := new.(*unstructured.Unstructured)
 
-	var handler cache.ResourceEventHandlerFuncs
-	handler.UpdateFunc = func(old, new interface{}) {
-		oldObj := old.(*unstructured.Unstructured)
-		newObj := new.(*unstructured.Unstructured)
+			diff, _ := diff.Diff(oldObj, newObj)
+			if len(diff) == 0 {
+				return
+			}
 
-		if !equality.Semantic.DeepEqual(old, new) {
-			diff := deep.Equal(oldObj, newObj)
-			log.WithField("resourceType", resourceType).WithField("diff", diff).Info("update event")
+			// Adapted from r3labs/diff to make Path a string
+			type Change struct {
+				Type string
+				Path string
+				From interface{}
+				To   interface{}
+			}
+
+			changes := []Change{}
+			for _, d := range diff {
+				path := strings.Join(d.Path[1:], "/")
+				if cfg.IsIgnoredDiffPath(resourceType, path) {
+					continue
+				}
+				changes = append(changes, Change{
+					Type: d.Type,
+					Path: path,
+					From: d.From,
+					To:   d.To,
+				})
+			}
+			diffLog := log.WithField("name", newObj.GetName()).WithField("namespace", newObj.GetNamespace())
+			diffLog = diffLog.WithField("resourceType", resourceType).WithField("diff", changes)
+			diffLog.Info("update event")
 			notifier.Handle(event.NewEvent(EventUpdate, resourceType, old, diff))
 		}
+		handler.DeleteFunc = func(obj interface{}) {
+			objStruct := obj.(*unstructured.Unstructured)
+			addLog := log.WithField("name", objStruct.GetName()).WithField("namespace", objStruct.GetNamespace())
+			addLog.WithField("resourceType", resourceType).Info("delete event")
+			notifier.Handle(event.NewEvent(EventAdd, resourceType, obj, nil))
+		}
+		return handler
 	}
-	return handler
 }
 
 func noOpHandler(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
@@ -68,10 +107,10 @@ func noOpHandler(resourceType string, notifier notify.Notifier) cache.ResourceEv
 	return handler
 }
 
-func getEventHandler(mode config.RunMode) eventHandler {
-	switch mode {
+func getEventHandler(cfg *config.Config) eventHandler {
+	switch cfg.Mode {
 	case config.DiffMode:
-		return diffHandler
+		return diffHandlerFactory(cfg)
 	default:
 		return watchHandler
 	}

@@ -28,7 +28,7 @@ func NewWatcher(cfg *config.Config) (*Watcher, error) {
 	}
 
 	notifier := notify.NewNotifierList(cfg)
-	informer.AddEventHandler(getEventHandler(cfg.Mode), notifier)
+	informer.AddEventHandler(getEventHandler(cfg), notifier)
 
 	return &Watcher{client, informer}, nil
 }
