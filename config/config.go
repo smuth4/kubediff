@@ -2,11 +2,12 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/gobwas/glob"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -17,11 +18,13 @@ const (
 type RunMode string
 
 type Config struct {
-	Mode       RunMode
-	Resources  []Resource
-	Namespaces []string
-	Notifier   Notifier
-	IgnoreDiff []string `:yaml:"ignoreDiff"`
+	Mode            RunMode
+	Resources       []Resource
+	Namespaces      []string
+	Notifier        Notifier
+	IgnoreDiff      []string `yaml:"ignoreDiff"`
+	ignoreGlobs     []glob.Glob
+	ignoreKindGlobs map[string][]glob.Glob
 }
 
 func (c *Config) init() {
@@ -41,21 +44,44 @@ func (c *Config) validate() error {
 			}
 		}
 	}
+	for _, i := range c.IgnoreDiff {
+		fmt.Println(i)
+		glob, err := glob.Compile(i)
+		if err != nil {
+			return fmt.Errorf("failed to compile glob \"%s\": %w", i, err)
+
+		}
+		c.ignoreGlobs = append(c.ignoreGlobs, glob)
+	}
+	c.ignoreKindGlobs = map[string][]glob.Glob{}
+	for _, r := range c.Resources {
+		if len(r.IgnoreDiff) != 0 {
+			globs := []glob.Glob{}
+			for _, i := range r.IgnoreDiff {
+				fmt.Println(i)
+				fmt.Println(r.Kind)
+				glob, err := glob.Compile(i)
+				if err != nil {
+					return fmt.Errorf("failed to compile glob \"%s\" for kind \"%s\": %w", i, r.Kind, err)
+				}
+				globs = append(globs, glob)
+			}
+			c.ignoreKindGlobs[r.Kind] = globs
+		}
+	}
 	return nil
 }
 
 func (c *Config) IsIgnoredDiffPath(kind string, path string) bool {
-	for _, p := range c.IgnoreDiff {
-		if strings.HasPrefix(path, p) {
+	for _, g := range c.ignoreGlobs {
+		if g.Match(path) {
 			return true
 		}
 	}
-	for _, r := range c.Resources {
-		if r.Kind != kind {
-			continue
-		}
-		for _, p := range r.IgnoreDiff {
-			if strings.HasPrefix(path, p) {
+	globs, ok := c.ignoreKindGlobs[kind]
+	if ok {
+		for _, g := range globs {
+			if g.Match(path) {
 				return true
 			}
 		}
@@ -64,8 +90,9 @@ func (c *Config) IsIgnoredDiffPath(kind string, path string) bool {
 }
 
 type Resource struct {
-	Kind       string
-	IgnoreDiff []string `:yaml:"ignoreDiff"`
+	Kind        string
+	IgnoreDiff  []string `yaml:"ignoreDiff"`
+	ignoreGlobs []glob.Glob
 }
 
 type Notifier struct {

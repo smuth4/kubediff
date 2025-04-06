@@ -58,10 +58,10 @@ func diffHandlerFactory(cfg *config.Config) func(resourceType string, notifier n
 
 			// Adapted from r3labs/diff to make Path a string
 			type Change struct {
-				Type string
-				Path string
-				From interface{}
-				To   interface{}
+				Type string      `json:"type"`
+				Path string      `json:"path"`
+				From interface{} `json:"from"`
+				To   interface{} `json:"to"`
 			}
 
 			changes := []Change{}
