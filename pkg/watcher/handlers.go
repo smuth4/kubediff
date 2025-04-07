@@ -77,6 +77,9 @@ func diffHandlerFactory(cfg *config.Config) func(resourceType string, notifier n
 					To:   d.To,
 				})
 			}
+			if len(changes) == 0 {
+				return
+			}
 			diffLog := log.WithField("name", newObj.GetName()).WithField("namespace", newObj.GetNamespace())
 			diffLog = diffLog.WithField("resourceType", resourceType).WithField("diff", changes)
 			diffLog.Info("update event")
