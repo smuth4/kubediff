@@ -45,7 +45,7 @@ spec:
           {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           {{ end }}
           args:
-            - -config=/config/
+            - -config=/config/config.yaml
           env:
             - name: LOG_LEVEL
               value: {{ .Values.logLevel | quote }}

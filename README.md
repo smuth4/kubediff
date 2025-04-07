@@ -17,7 +17,7 @@ $ kubediff --config=/path/to/config
 kubediff: A resource diff watcher for Kubernetes
 
 kubediff is a Kubernetes resource diff watcher with the ability to configure event notifications
-to webhook/Slack. It watches the cluster for any resource change (including custom CRDs) and logs them. You can also run it in normal mode, and can export the logs to your preferred logging stack.
+to webhook. It watches the cluster for any resource change (including custom CRDs) and logs them. You can also run it in normal mode, and can export the logs to your preferred logging stack.
 
 Usage:
   kubediff --config=/path/to/config

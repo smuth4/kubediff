@@ -62,11 +62,6 @@ config:
 
   # notifier settings
   notifier:
-    slack:
-      enabled: false
-      channel: 'SLACK_CHANNEL'
-      token: 'SLACK_API_TOKEN'
-      title: 'kubediff event'
     webhook:
       enabled: false
       url: 'WEBHOOK_URL'
@@ -83,7 +78,7 @@ resources: {}
   # requests:
   #  cpu: 100m
   #  memory: 128Mi
-  
+
 nodeSelector: {}
 
 tolerations: []
