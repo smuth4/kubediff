@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/arriqaaq/kubediff/config"
@@ -14,13 +13,12 @@ import (
 
 var (
 	configFilePath = "config.yaml"
-	configPath     = flag.String("config", "", "config folder path")
+	configFile     = flag.String("config", "", "config file path")
 )
 
 func main() {
 	flag.Parse()
-	filepath := filepath.Join(*configPath, configFilePath)
-	conf, err := config.New(filepath)
+	conf, err := config.New(*configFile)
 	if err != nil {
 		log.Fatalf("Error in loading configuration. Error:%s", err.Error())
 	}
