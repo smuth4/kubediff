@@ -45,7 +45,6 @@ func (c *Config) validate() error {
 		}
 	}
 	for _, i := range c.IgnoreDiff {
-		fmt.Println(i)
 		glob, err := glob.Compile(i)
 		if err != nil {
 			return fmt.Errorf("failed to compile glob \"%s\": %w", i, err)
@@ -58,8 +57,6 @@ func (c *Config) validate() error {
 		if len(r.IgnoreDiff) != 0 {
 			globs := []glob.Glob{}
 			for _, i := range r.IgnoreDiff {
-				fmt.Println(i)
-				fmt.Println(r.Kind)
 				glob, err := glob.Compile(i)
 				if err != nil {
 					return fmt.Errorf("failed to compile glob \"%s\" for kind \"%s\": %w", i, r.Kind, err)
