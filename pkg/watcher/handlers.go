@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/arriqaaq/kubediff/config"
 	"github.com/arriqaaq/kubediff/pkg/event"
@@ -18,10 +19,13 @@ const (
 	EventDelete string = "EventDelete"
 )
 
+// Bit of a gross hack, but we can ensure there's only one informer manipulating this
+var HasSynced bool
+var HasSyncedMutex sync.Mutex
+
 type eventHandler func(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs
 
 func watchHandler(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
-
 	var handler cache.ResourceEventHandlerFuncs
 	handler.AddFunc = func(obj interface{}) {
 		log.WithField("resourceType", resourceType).WithField("obj", obj).Info("add event")
@@ -38,10 +42,19 @@ func watchHandler(resourceType string, notifier notify.Notifier) cache.ResourceE
 	return handler
 }
 
+func hasSynced() bool {
+	HasSyncedMutex.Lock()
+	defer HasSyncedMutex.Unlock()
+	return HasSynced
+}
+
 func diffHandlerFactory(cfg *config.Config) func(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
 	return func(resourceType string, notifier notify.Notifier) cache.ResourceEventHandlerFuncs {
 		var handler cache.ResourceEventHandlerFuncs
 		handler.AddFunc = func(obj interface{}) {
+			if !hasSynced() {
+				return
+			}
 			objStruct := obj.(*unstructured.Unstructured)
 			addLog := log.WithField("name", objStruct.GetName()).WithField("namespace", objStruct.GetNamespace())
 			addLog.WithField("resourceType", resourceType).Info("add event")

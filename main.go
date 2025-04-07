@@ -23,6 +23,7 @@ func main() {
 		log.Fatalf("Error in loading configuration. Error:%s", err.Error())
 	}
 
+	watcher.HasSynced = false
 	watcher, err := watcher.NewWatcher(conf)
 	if err != nil {
 		log.Fatalf("Error in loading configuration. Error:%s", err.Error())

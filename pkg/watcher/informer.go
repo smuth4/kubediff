@@ -82,16 +82,13 @@ func (i *multiResourceInformer) AddEventHandler(handler eventHandler, notifier n
 func (i *multiResourceInformer) WaitForCacheSync(stopCh <-chan struct{}) bool {
 	for _, ki := range i.resourceToInformer {
 		for _, informer := range ki {
-			result := cache.WaitForCacheSync(stopCh, informer.HasSynced)
-			if !result {
-				return false
-			}
+			cache.WaitForCacheSync(stopCh, informer.HasSynced)
 		}
 	}
-	return true;
+	return true
 }
 
-// HasSynced checks if each namespaced informer has synced
+// HasSynced checks if each informer has synced
 func (i *multiResourceInformer) HasSynced() bool {
 	for _, ki := range i.resourceToInformer {
 		for _, informer := range ki {

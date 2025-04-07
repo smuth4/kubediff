@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/arriqaaq/kubediff/config"
-	"github.com/arriqaaq/kubediff/pkg/notify"
 	"github.com/arriqaaq/kubediff/pkg/log"
+	"github.com/arriqaaq/kubediff/pkg/notify"
 )
 
 const (
@@ -39,10 +39,13 @@ type Watcher struct {
 
 func (w *Watcher) Run(stopCh chan struct{}) {
 	go w.informer.Start(stopCh)
-	log.Debug("waiting for informer cache sync")
-	w.informer.WaitForCacheSync(stopCh)
-	log.Debug("cache sync complete")
 	notifier := notify.NewNotifierList(w.cfg)
 	w.informer.AddEventHandler(getEventHandler(w.cfg), notifier)
+	log.Debug("waiting for informer cache sync")
+	w.informer.WaitForCacheSync(stopCh)
+	HasSyncedMutex.Lock()
+	HasSynced = true
+	HasSyncedMutex.Unlock()
+	log.Debug("cache sync complete")
 	<-stopCh
 }
