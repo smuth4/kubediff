@@ -14,6 +14,7 @@ type Informer interface {
 	AddEventHandler(handler eventHandler, notifier notify.Notifier)
 	HasSynced() bool
 	Start(ch <-chan struct{})
+	WaitForCacheSync(stopCh <-chan struct{}) bool
 }
 
 type NewInformerFunc func(client *Client) (*multiResourceInformer, error)
@@ -76,6 +77,18 @@ func (i *multiResourceInformer) AddEventHandler(handler eventHandler, notifier n
 			informer.AddEventHandler(handler(kind, notifier))
 		}
 	}
+}
+
+func (i *multiResourceInformer) WaitForCacheSync(stopCh <-chan struct{}) bool {
+	for _, ki := range i.resourceToInformer {
+		for _, informer := range ki {
+			result := cache.WaitForCacheSync(stopCh, informer.HasSynced)
+			if !result {
+				return false
+			}
+		}
+	}
+	return true;
 }
 
 // HasSynced checks if each namespaced informer has synced
